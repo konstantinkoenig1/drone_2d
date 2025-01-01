@@ -57,7 +57,7 @@ C4 = 0.0225
 R4_MIN = -0.142
 
 # For Rendering
-WINDOW_SIZE = 500
+WINDOW_SIZE = 1000
 PX_PER_METER = WINDOW_SIZE/VIEWPORT
 GREY = (200, 200, 200)
 BACKGROUND_COL = (255, 255, 255)
@@ -82,7 +82,7 @@ points[2,:] = np.ones([1,10]) # Auxiliary row of ones
 
 class Drone2dAbsEnv(gym.Env):
     """Custom Environment that follows gym interface
-    Methods: __init__(), reset(), step(), physics_engine()
+    Methods: __init__() [ok], reset() [ok], step() [ok], physics_engine() [ok], render() [TODO], close() [TODO]
     Attributes: self.action_space, self.observation_space,  self.current_state, self.render_mode
     """
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100} 
@@ -152,6 +152,50 @@ class Drone2dAbsEnv(gym.Env):
             self._render_frame()
 
         return observation, info
+
+    def fair_reset(self):
+        # Reset Method that physicly allows agent to reach goal.
+        self.steps = 0
+        # Randomize Agent and environment with some constraints to make it fair
+        self.current_state = spaces.Box(low=np.array([MIN_POS_R, # in x
+                                                    MIN_POS_R, # in y
+                                                    MIN_SPEED_R, # in x
+                                                    MIN_SPEED_R, # in y
+                                                    MIN_ANGLE_R, 
+                                                    MIN_ANG_VEL_R,
+                                                    MIN_THRUST_R, # Rotor 1
+                                                    MIN_THRUST_R]), # Rotor 2
+                                    high=np.array([MAX_POS_R, # in x
+                                                    MAX_POS_R, # in y
+                                                    MAX_SPEED_R, # in x
+                                                    MAX_SPEED_R, # in y
+                                                    MAX_ANGLE_R,
+                                                    MAX_ANG_VEL_R,
+                                                    MAX_THRUST_R, # Rotor 1
+                                                    MAX_THRUST_R]), # Rotor 2
+                                                    dtype=np.float32).sample()
+        
+        observation =  self.current_state
+        info = {}
+
+        if self.render_mode == "human":
+            self._render_frame()
+
+        return observation, info
+    
+    def deleteme_reset(self, state): # TODO: deleteme
+        # Reset Method that physicly allows agent to reach goal.
+        self.steps = 0
+        # Randomize Agent and environment with some constraints to make it fair
+        self.current_state = state
+        
+        observation =  self.current_state
+        info = {}
+
+        if self.render_mode == "human":
+            self._render_frame()
+
+        return observation, info
     
     def step(self, action):
     #def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
@@ -175,6 +219,7 @@ class Drone2dAbsEnv(gym.Env):
             observation = self.current_state # Environment fully observable. Observation equals state.
             reward = 1 # Slight positive revard as extra incentive
             terminated = True
+            info = {"state": "goal_reached"}
             #print("\n\n\n ----------------------Terminated---------------------- \n\n\n ")
         elif max(self.current_state[0:2]) > VIEWPORT/2 or min(self.current_state[0:2]) < -VIEWPORT/2:
             # Agent left viewport
@@ -185,20 +230,20 @@ class Drone2dAbsEnv(gym.Env):
             observation = self.current_state
             reward = -400 # We really don't want that
             terminated = True
+            info = {"state": "viewport_left"}
         else:
             # Agent within viewport but goal not reached
             observation = self.current_state
             reward = self.get_default_reward()
             terminated = False
+            info = {"state": "ongoing"}
         
         # Episodes are truncated after 10s = 1000 timesteps = 200 decisions
         if self.steps >= MAX_STEPS_PER_EPISODE:
             truncated = True
+            info = {"state": "truncated"}
         else:
             truncated = False
-
-        # Get info
-        info = {}
 
         
         self.steps +=1
@@ -334,13 +379,13 @@ class Drone2dAbsEnv(gym.Env):
         pygame.draw.polygon(canvas, DRONE_COL, (pts[:,0], pts[:,1], pts[:,2], pts[:,3]))
 
         # Main axis
-        pygame.draw.line(canvas,DRONE_COL,pts[:,4], pts[:,5], width=3*SCALE)
+        pygame.draw.line(canvas,DRONE_COL,pts[:,4], pts[:,5], width=5*SCALE)
 
         # Rotor 1
-        pygame.draw.line(canvas,ROTOR_COL,pts[:,6], pts[:,7], width=3*SCALE)
+        pygame.draw.line(canvas,ROTOR_COL,pts[:,6], pts[:,7], width=5*SCALE)
 
         # Rotor 2
-        pygame.draw.line(canvas,ROTOR_COL,pts[:,8], pts[:,9], width=3*SCALE)
+        pygame.draw.line(canvas,ROTOR_COL,pts[:,8], pts[:,9], width=5*SCALE)
 
         if self.render_mode == "human":
             # The following line copies our drawings from `canvas` to the visible window

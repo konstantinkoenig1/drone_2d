@@ -1,0 +1,31 @@
+name: myenv_rl
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  - ipykernel
+  - jupyter
+  - notebook
+  - pip
+  - pip:
+      - absl-py
+      - astunparse
+      - box2d-py
+      - cachetools
+      - charset-normalizer
+      - google-auth
+      - matplotlib==3.7.5
+      - tensorflow==2.13.1
+      - keras
+      - gym
+      - requests
+      - stable-baselines3
+      - tensorboard
+      - h5py
+      - pynput
+      - pygame
