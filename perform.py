@@ -26,7 +26,6 @@ for ep in range(episodes):
     
     if info["state"] == "goal_reached":
         print("Drone stabilized")
-        # Keep going a bit longer
         for i in range(60): # 3s
             action, _ = model.predict(observation)
             observation, reward, terminated, truncated, info = env.step(action)
